@@ -152,7 +152,7 @@ void Simulator::run(Beam& ion, Ions& ion_sample, Cooler& cooler, EBeam& ebeam,
     outfile.close();
     std::cout<<"Finished dynamic simulation."<<"\t"<<ion.charge_number()<<std::endl;
 }
-
+//based on: https://github.com/radiasoft/electroncooling.git
 void Simulator::save_forces_sdds(int n_sample, string filename, ECoolRate* ecool_solver) {
     using std::endl;
     std::ofstream output_particles;

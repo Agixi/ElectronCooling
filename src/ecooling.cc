@@ -245,6 +245,7 @@ void ECoolRate::ecool_rate(FrictionForceSolver &force_solver, Beam &ion,
 
 }
 
+//based on: https://github.com/radiasoft/electroncooling.git
 int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
                 Ions &ion_sample, Cooler &cooler, EBeam &ebeam,
                 Ring &ring){
