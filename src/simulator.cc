@@ -1,16 +1,18 @@
 #include "simulator.h"
 #include "functions.h"
 #include "luminosity.h"
+#include "constants.h"
 #include "ui.h"
 #include <cmath>
 
 extern Record uircd;
 
+
 void Simulator::output_sddshead() {
     using std::endl;
     outfile<<"SDDS1"<<endl;
     outfile<<"! Define colums:"<<endl
-        <<"&column name=t, type=double, units=s, description=\"time\", &end"<<endl
+        <<"&column name=t, type=double, units=s, description=time, &end"<<endl
         <<"&column name=emit_x, type=double, units=m*rad, description=\"normalized horizontal emittance\", &end"<<endl
         <<"&column name=emit_y, type=double, units=m*rad, description=\"normalized vertical emittance\", &end"<<endl
         <<"&column name=dp/p, type=double, units=NULL, description=\"momentum spread\", &end"<<endl
@@ -71,8 +73,19 @@ void Simulator::run(Beam& ion, Ions& ion_sample, Cooler& cooler, EBeam& ebeam,
     output_to_file();
 
     adjust_rf_voltage(ring);
+    
 
-for(int i=0; i<n_step+1; ++i) {
+    FrictionForceSolver* force_solver_tmp=force_solver;
+    Beam& ion_tmp=ion;
+    Ions& ion_sample_tmp=ion_sample;
+    Cooler& cooler_tmp=cooler;  
+    EBeam& ebeam_tmp=ebeam;
+    Ring& ring_tmp=ring;
+    ECoolRate* ecool_solver_tmp=ecool_solver;
+     
+
+
+    for(int i=0; i<n_step+1; ++i) {
         save_ions(i, ion_sample);
         //record
         emit.at(0) = ion.emit_nx();
@@ -86,7 +99,8 @@ for(int i=0; i<n_step+1; ++i) {
 
         if(ecool) {
             ecool_solver->ecool_rate(*force_solver, ion, ion_sample, cooler, ebeam, ring, r_ecool.at(0), r_ecool.at(1),
-                                     r_ecool.at(2));
+                                    r_ecool.at(2));
+
         }
 
         for(int i=0; i<3; ++i) r.at(i) = r_ibs.at(i) + r_ecool.at(i);
@@ -103,9 +117,17 @@ for(int i=0; i<n_step+1; ++i) {
         update_ibeam(ion, ion_sample, ring, ebeam, cooler, ecool_solver);
 
         t += dt;
-        std::cout<<i<<std::endl;
+   //     std::cout<<i<<std::endl;
+
     }
     save_ions(n_step, ion_sample);
+
+   
+ if(ecool){// && !dynamic_paras->test() && 
+       //       ion.bunched() && ebeam.bunched()){
+       ecool_solver->CalculateForce(*force_solver_tmp, ion_tmp, ion_sample_tmp, cooler_tmp, ebeam_tmp, ring_tmp);
+       save_forces_sdds(ion_sample.n_sample(), "force_table.txt", ecool_solver_tmp);
+    }
 
     uircd.emit_nx = emit.at(0);
     uircd.emit_ny = emit.at(1);
@@ -122,8 +144,31 @@ for(int i=0; i<n_step+1; ++i) {
     uircd.ry_total = r.at(1);
     uircd.rs_total = r.at(2);
     uircd.t = t;
+ 
+    double ratio=0.1;
 
+ 
     //Need to add: save the results before quiting the simulation.
     outfile.close();
-    std::cout<<"Finished dynamic simulation."<<std::endl;
+    std::cout<<"Finished dynamic simulation."<<"\t"<<ion.charge_number()<<std::endl;
+}
+
+void Simulator::save_forces_sdds(int n_sample, string filename, ECoolRate* ecool_solver) {
+    using std::endl;
+    std::ofstream output_particles;
+    output_particles.open(filename);
+    
+    output_particles.precision(10);
+    output_particles<<std::showpos;
+    output_particles<<std::scientific;
+    vector<double> f_long=ecool_solver->get_f_long();
+    vector<double> v_long=ecool_solver->get_v_long();
+    for(int i=0; i<n_sample; ++i) {
+        //We don't need 10k points, sub-sample
+        if(i%1 == 0){
+            //Convert forces from Newtons to eV/m
+            output_particles<<f_long[i]*k_N_eVm <<' '<<v_long[i]<<std::endl;
+        }
+    }
+    output_particles.close();
 }

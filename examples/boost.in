@@ -1,0 +1,70 @@
+section_scratch
+        ion_mass = 183432.7312
+        ion_ke = 179000.0
+        ion_gamma = 1 + ion_ke/ion_mass
+section_ion
+        charge_number = 79
+        mass = ion_mass
+        kinetic_energy = ion_ke
+        norm_emit_x = 3.46e-06
+        norm_emit_y = 3.46e-06
+        momentum_spread = 0.0002
+        particle_number = 1000000000.0
+        rms_bunch_length = 9.043
+section_ring
+        lattice = examples/test.tfs
+section_ibs
+        nu = 100
+        nv = 100
+        log_c = 20.6
+        coupling = 0.0
+section_cooler
+        length = 6.0
+        section_number = 1
+        magnetic_field = 0.1
+        bet_x = 16.0
+        bet_y = 16.0
+        disp_x = 0.0
+        disp_y = 0.0
+        alpha_x = 0.0
+        alpha_y = 0.0
+        disp_dx = 0.0
+        disp_dy = 0.0
+section_e_beam
+        gamma = ion_gamma
+        tmp_tr = 0.1
+        tmp_l = 0.0005
+        shape = dc_uniform
+        radius = 0.01
+        current = 1.0
+        length = 0.3
+        e_number = 100000000.0
+section_ecool
+        sample_number = 10000.0
+        force_formula = parkhomchuk
+section_run
+        create_ion_beam
+        create_ring
+        create_e_beam
+        create_cooler
+section_simulation
+        ibs = on
+        e_cool = on
+        time = 18000.0
+        step_number = 600
+        save_particle_interval = 100
+        output_file = JSPEC.SDDS
+        model = particle
+        ref_bet_x = 10.0
+        ref_bet_y = 10.0
+        ref_alf_x = 0.0
+        ref_alf_y = 0.0
+        ref_disp_x = 0.0
+        ref_disp_y = 0.0
+        ref_disp_dx = 0.0
+        ref_disp_dy = 0.0
+section_run
+        calculate_ibs
+        calculate_ecool
+        total_expansion_rate
+        run_simulation

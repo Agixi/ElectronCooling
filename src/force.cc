@@ -153,6 +153,8 @@ void ForcePark::friction_force(int charge_number, int ion_number, vector<double>
     }
 }
 
+
+
 double ForceNonMag::rho_max(int charge_number, double v2, double ve2, double ne) {
     double rho_max = 0;
     if(smooth_rho_max) {

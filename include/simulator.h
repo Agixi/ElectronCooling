@@ -63,6 +63,7 @@ class Simulator{
     void set_reset_time(bool b){reset_time = b;}
     void set_overwrite(bool b) {overwrite = b; }
     void set_calc_lum(bool b) {calc_luminosity = b; }
+    void save_forces_sdds(int n_sample, string filename, ECoolRate* ecool_solver);
 
     virtual void run(Beam& ion, Ions& ion_sample, Cooler& cooler, EBeam& ebeam,
                      Ring& ring, IBSSolver* ibs_solver, ECoolRate* ecool_solver,

@@ -96,6 +96,8 @@ void ECoolRate::force(int n_sample, Beam &ion, EBeam &ebeam, Cooler &cooler, Fri
     }
 }
 
+
+
 void ECoolRate::bunched_to_coasting(Beam &ion, Ions& ion_sample, EBeam &ebeam, Cooler &cooler,
                         FrictionForceSolver &force_solver){
     int n_sample = ion_sample.n_sample();
@@ -241,6 +243,134 @@ void ECoolRate::ecool_rate(FrictionForceSolver &force_solver, Beam &ion,
 
     adjust_rate(ion, ebeam, {&rate_x, &rate_y, &rate_s});
 
+}
+
+int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
+                Ions &ion_sample, Cooler &cooler, EBeam &ebeam,
+                Ring &ring){
+
+    int n_sample = ion_sample.n_sample();
+    //In the beam frame, determine the max/min velocities in v_long 
+    // and v_tr in the specified beam configuration
+    double v_long_max, v_tr_max, ne_max = - DBL_MAX;
+    double v_long_min, v_tr_min, ne_min = DBL_MAX;
+ 
+    for(int i=0;i<n_sample;i++){
+        if(v_long[i] > v_long_max) {
+            if(v_long[i] < k_c) v_long_max = v_long[i];
+        }
+        if(v_tr[i]   > v_tr_max) {
+            if(v_tr[i] < k_c)   v_tr_max = v_tr[i];
+        }
+        
+        if(v_long[i] < v_long_min){
+            if(v_long[i] > -k_c) v_long_min = v_long[i];
+        }
+        if(v_tr[i]   < v_tr_min) {
+            if(v_tr[i] > -k_c)   v_tr_min = v_tr[i];
+        }
+        
+        if(ne[i] > ne_max) ne_max = ne[i];
+        if(ne[i] < ne_min) ne_min = ne[i];   
+    }
+
+    //Protect against some extraneous large values    
+    // that wreck our v_interval. This was observed
+    //only once and wasn't reproducible.    
+    //Enforce speed limits.
+    if(v_tr_min < -k_c) v_tr_min = -k_c;
+    if(v_tr_max > k_c) v_tr_max = k_c;
+    
+    //TODO: This is a temporary (permenant?) hack to fix the velocities that are calculated
+    v_tr_max = 6e5;
+    v_tr_min = 0;
+    v_long_max = 6e5;
+    v_long_min = -6e5;
+    
+
+    //Define the values of the velocities for reporting
+    // on the dependence of v_long. We set v_long = 0 for 
+    // calculating f_tr, and v_tr = 0 for calculating f_long.
+    double v_interval = (v_tr_max - v_tr_min)/n_sample;
+
+#ifndef NDEBUG
+    std::cout<<"Calculate Force: "<<std::endl;
+    std::cout<<"V_tr min = "<<v_tr_min<<" V_tr max = "<<v_tr_max<<std::endl;
+    std::cout<<"V_long min = "<<v_long_min<<" V_long max = "<<v_long_max<<std::endl;
+    std::cout<<"ne min = "<<ne_min<<" ne max = "<<ne_max<<std::endl;
+    std::cout<<"n_sample = "<<n_sample<<" v trans interval = "<<v_interval<<std::endl;
+#endif
+
+    //Our v_tr values are already set. Zero out v_long
+    for(int i=0;i<n_sample;i++){
+        v_tr[i] = v_tr_min + (double)i*v_interval;
+        v_long[i] = 0.0;   
+        //yp[i]  = 0.0 ; // Focus on transverse only in x direction
+        ne[i] = ne_max;  //We need a constant n_e for a smooth plot
+    }
+
+    //Calculate friction force f_tr when v_long = 0.
+    force(n_sample, ion, ebeam, cooler, force_solver);
+
+    //Store the values so they don't get overwritten when we
+    // calculate f_long
+    std::vector< double > v_tmp;
+    std::vector< double > f_tmp;
+    
+    for(int i=0;i<n_sample;i++){
+        v_tmp.push_back(v_tr[i]);
+        f_tmp.push_back(force_x[i]);
+    }
+
+    //Prepare for calculating force_z (still in the beam frame)
+    v_interval = (v_long_max - v_long_min)/n_sample;
+    for(int i=0;i<n_sample;i++){
+        v_long[i]  = v_long_min + (double)i*v_interval;
+        v_tr[i]    = 0.0;   
+        force_x[i] = 0.0;
+        force_y[i] = 0.0;
+        force_z[i] = 0.0;
+        ne[i]      = ne_max;  //We need a constant n_e for a smooth plot
+    }
+#ifndef NDEBUG
+    std::cout<<"n_sample = "<<n_sample<<" v long interval = "<<v_interval<<std::endl;
+#endif
+    //Calculate friction force f_long when v_tr = 0
+    force(n_sample, ion, ebeam, cooler, force_solver);
+
+    //This writes force_z and v_long
+
+    //Replace the values calculated previously. Sort them by velocity value
+    std::vector< std::pair<double,double> > zip;
+    for(size_t i=0; i<v_tmp.size(); ++i){
+        zip.push_back(std::make_pair(v_tmp[i], f_tmp[i]));
+    }
+
+    // Sort the vector of pairs
+    std::sort(std::begin(zip), std::end(zip),
+              [&](std::pair<double,double> a, std::pair<double,double> b){
+                  return a.first < b.first;
+              });
+    //Over-write the global variables with sorted values
+    for(size_t i=0; i<zip.size(); i++){
+        v_tmp[i] = zip[i].first;
+        f_tmp[i] = zip[i].second;
+    }
+    //Now write to the global variables
+    for(size_t i=0;i<zip.size();i++){
+        v_tr[i]    = v_tmp[i];
+        force_x[i] = f_tmp[i];
+    }
+    
+    //We don't want to transfer the velocities back to lab frame
+    //lab_frame(n_sample, ebeam.gamma());  
+    //end_ecooling(ecool_paras, ion);
+
+    //TODO: Betacool shows this as a 2d contour plot. Should we instead calculate 
+    // on a grid to prepare for this kind of plot in the future?
+    
+           
+    return 0;
 }
 
 vector<double>& ECoolRate::scratch(ECoolRateScratch s) {

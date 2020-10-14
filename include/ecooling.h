@@ -44,8 +44,16 @@ public:
     vector<double>& scratch(ECoolRateScratch s);
     double t_cooler(){return t_cooler_;}
     void set_n_long_sample(int n){n_long_sample_ = n;}
+    vector<double> get_v_long(){return v_long;}
+    vector<double> get_f_long(){return force_z;}
+    vector<double> get_ne(){return ne;}
+    vector<double> get_v_tr(){return v_tr;}
     void ecool_rate(FrictionForceSolver &force, Beam &ion, Ions &ptcl, Cooler &cooler, EBeam &ebeam,
                   Ring &ring, double &rate_x, double &rate_y, double &rate_s);
+    int CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
+                Ions &ion_sample, Cooler &cooler, EBeam &ebeam,
+                Ring &ring);
+
 };
 
 #endif // ECOOLING_H
