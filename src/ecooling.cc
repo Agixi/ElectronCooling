@@ -245,12 +245,18 @@ void ECoolRate::ecool_rate(FrictionForceSolver &force_solver, Beam &ion,
 
 }
 
-//based on: https://github.com/radiasoft/electroncooling.git
 int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
                 Ions &ion_sample, Cooler &cooler, EBeam &ebeam,
                 Ring &ring){
 
     int n_sample = ion_sample.n_sample();
+    electron_density(ion_sample,ebeam);
+    space_to_dynamic(n_sample, ion, ion_sample);
+
+    //Time through the cooler
+    t_cooler_ = cooler.length()/(ion.beta()*k_c);
+    //Transfer into e- beam frame
+    beam_frame(n_sample, ebeam.gamma());
     //In the beam frame, determine the max/min velocities in v_long 
     // and v_tr in the specified beam configuration
     double v_long_max, v_tr_max, ne_max = - DBL_MAX;
