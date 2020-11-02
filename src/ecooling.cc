@@ -3,6 +3,9 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#ifdef _OPENMP
+    #include <omp.h>
+#endif // _OPENMP
 #include "constants.h"
 #include "cooler.h"
 #include "force.h"
@@ -147,6 +150,9 @@ void ECoolRate::force_distribute(int n_sample, Beam &ion, Ions &ion_sample) {
     double v0 = ion.beta()*k_c;
     vector<double>& xp = ion_sample.cdnt(Phase::XP);
     vector<double>& yp = ion_sample.cdnt(Phase::YP);
+    #ifdef _OPENMP
+        #pragma omp parallel for
+    #endif // _OPENMP
     for(int i=0; i<n_sample; ++i){
         force_y[i] = yp[i]!=0?force_x[i]*yp[i]*v0/v_tr[i]:0;
         force_x[i] = xp[i]!=0?force_x[i]*xp[i]*v0/v_tr[i]:0;
@@ -158,6 +164,9 @@ void ECoolRate::apply_kick(int n_sample, Beam &ion, Ions& ion_sample) {
     vector<double>& ixp = ion_sample.cdnt(Phase::XP);
     vector<double>& iyp = ion_sample.cdnt(Phase::YP);
     vector<double>& idp_p = ion_sample.cdnt(Phase::DP_P);
+    #ifdef _OPENMP
+        #pragma omp parallel for
+    #endif // _OPENMP
     for(int i=0; i<n_sample; ++i){
         xp[i] = !iszero(ixp[i])?ixp[i]*exp(force_x[i]*t_cooler_/(p0*ixp[i])):ixp[i];
         yp[i] = !iszero(iyp[i])?iyp[i]*exp(force_y[i]*t_cooler_/(p0*iyp[i])):iyp[i];
@@ -216,6 +225,7 @@ void ECoolRate::ecool_rate(FrictionForceSolver &force_solver, Beam &ion,
 
     //Distribute the friction force into x,y direction.
     force_distribute(n_sample,ion, ion_sample);
+
     //Original emittance
     double emit_x0, emit_y0, emit_z0;
     ion_sample.emit(emit_x0, emit_y0, emit_z0);
@@ -226,6 +236,7 @@ void ECoolRate::ecool_rate(FrictionForceSolver &force_solver, Beam &ion,
     //New emittance
     double emit_x, emit_y, emit_z;
     auto t = ion_sample.get_twiss();
+
     adjust_disp_inv(t.disp_x, x_bet, dp_p, ion_sample.cdnt(Phase::X), n_sample);
     adjust_disp_inv(t.disp_dx, xp_bet, dp_p, xp, n_sample);
     adjust_disp_inv(t.disp_y, y_bet, dp_p, ion_sample.cdnt(Phase::Y), n_sample);
@@ -244,7 +255,7 @@ void ECoolRate::ecool_rate(FrictionForceSolver &force_solver, Beam &ion,
     adjust_rate(ion, ebeam, {&rate_x, &rate_y, &rate_s});
 
 }
-
+//BASED ON: https://github.com/radiasoft/electroncooling
 int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
                 Ions &ion_sample, Cooler &cooler, EBeam &ebeam,
                 Ring &ring){
@@ -257,11 +268,11 @@ int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
     t_cooler_ = cooler.length()/(ion.beta()*k_c);
     //Transfer into e- beam frame
     beam_frame(n_sample, ebeam.gamma());
-    //In the beam frame, determine the max/min velocities in v_long 
+    //In the beam frame, determine the max/min velocities in v_long
     // and v_tr in the specified beam configuration
     double v_long_max, v_tr_max, ne_max = - DBL_MAX;
     double v_long_min, v_tr_min, ne_min = DBL_MAX;
- 
+
     for(int i=0;i<n_sample;i++){
         if(v_long[i] > v_long_max) {
             if(v_long[i] < k_c) v_long_max = v_long[i];
@@ -269,34 +280,34 @@ int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
         if(v_tr[i]   > v_tr_max) {
             if(v_tr[i] < k_c)   v_tr_max = v_tr[i];
         }
-        
+
         if(v_long[i] < v_long_min){
             if(v_long[i] > -k_c) v_long_min = v_long[i];
         }
         if(v_tr[i]   < v_tr_min) {
             if(v_tr[i] > -k_c)   v_tr_min = v_tr[i];
         }
-        
+
         if(ne[i] > ne_max) ne_max = ne[i];
-        if(ne[i] < ne_min) ne_min = ne[i];   
+        if(ne[i] < ne_min) ne_min = ne[i];
     }
 
-    //Protect against some extraneous large values    
+    //Protect against some extraneous large values
     // that wreck our v_interval. This was observed
-    //only once and wasn't reproducible.    
+    //only once and wasn't reproducible.
     //Enforce speed limits.
     if(v_tr_min < -k_c) v_tr_min = -k_c;
     if(v_tr_max > k_c) v_tr_max = k_c;
-    
+
     //TODO: This is a temporary (permenant?) hack to fix the velocities that are calculated
     v_tr_max = 6e5;
     v_tr_min = 0;
     v_long_max = 6e5;
     v_long_min = -6e5;
-    
+
 
     //Define the values of the velocities for reporting
-    // on the dependence of v_long. We set v_long = 0 for 
+    // on the dependence of v_long. We set v_long = 0 for
     // calculating f_tr, and v_tr = 0 for calculating f_long.
     double v_interval = (v_tr_max - v_tr_min)/n_sample;
 
@@ -311,7 +322,7 @@ int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
     //Our v_tr values are already set. Zero out v_long
     for(int i=0;i<n_sample;i++){
         v_tr[i] = v_tr_min + (double)i*v_interval;
-        v_long[i] = 0.0;   
+        v_long[i] = 0.0;
         //yp[i]  = 0.0 ; // Focus on transverse only in x direction
         ne[i] = ne_max;  //We need a constant n_e for a smooth plot
     }
@@ -323,7 +334,7 @@ int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
     // calculate f_long
     std::vector< double > v_tmp;
     std::vector< double > f_tmp;
-    
+
     for(int i=0;i<n_sample;i++){
         v_tmp.push_back(v_tr[i]);
         f_tmp.push_back(force_x[i]);
@@ -333,7 +344,7 @@ int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
     v_interval = (v_long_max - v_long_min)/n_sample;
     for(int i=0;i<n_sample;i++){
         v_long[i]  = v_long_min + (double)i*v_interval;
-        v_tr[i]    = 0.0;   
+        v_tr[i]    = 0.0;
         force_x[i] = 0.0;
         force_y[i] = 0.0;
         force_z[i] = 0.0;
@@ -368,15 +379,15 @@ int ECoolRate::CalculateForce(FrictionForceSolver &force_solver, Beam &ion,
         v_tr[i]    = v_tmp[i];
         force_x[i] = f_tmp[i];
     }
-    
+
     //We don't want to transfer the velocities back to lab frame
-    //lab_frame(n_sample, ebeam.gamma());  
+    //lab_frame(n_sample, ebeam.gamma());
     //end_ecooling(ecool_paras, ion);
 
-    //TODO: Betacool shows this as a 2d contour plot. Should we instead calculate 
+    //TODO: Betacool shows this as a 2d contour plot. Should we instead calculate
     // on a grid to prepare for this kind of plot in the future?
-    
-           
+
+
     return 0;
 }
 
