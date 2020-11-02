@@ -1,0 +1,10 @@
+bin
+obj
+run
+runjspec
+debug
+*.depend
+*.layout
+*.exe
+*.py
+
