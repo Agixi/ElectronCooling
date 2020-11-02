@@ -325,14 +325,15 @@ The following keywords records the results from the previous computation. They c
 
 **section_ibs**
 
-| Keywords | Meaning                                  |
-| -------- | ---------------------------------------- |
-| nu       | Set the grid number in horizontal direction for the 3D integration. |
-| nv       | Set the grid number in vertical direction for the 3D integration. |
-| nz       | Set the grid number in longitudinal direction for the 3D integration. |
+| Keywords | Meaning                                                      |
+| -------- | ------------------------------------------------------------ |
+| nu       | Set the grid number in horizontal direction for the 3D integrationin Martinit model. |
+| nv       | Set the grid number in vertical direction for the 3D integrationin Martinit model. |
+| nz       | Set the grid number in longitudinal direction for the 3D integration in Martinit model. Set the integration step number in BMC/BMZ model. |
 | log_c    | Coulomb logarithm. If log_c is set, then the integration in the longitudinal direction is replaced by the Coulomb logarithm. Thus the parameter nz is ignored. |
-| coupling | Transverse coupling rate, ranging from 0 to 1. |
-| model    | Model for IBS expansion rate calculation: Martini or BM. |
+| coupling | Transverse coupling rate, ranging from 0 to 1.               |
+| factor   | Scale factor for the upper bound of the integration in BMC/BMZ model. |
+| model    | Model for IBS expansion rate calculation: Martini, BM (Bjorken-Mtingwa model ignoring vertical dispersion and some small terms), BMC/BMZ (Bjorken-Mtingwa model including all terms). BMC and BMZ use different ways to calculate the integrations, but they are the same model. |
 
 **section_ecool**
 
@@ -340,10 +341,7 @@ The following keywords records the results from the previous computation. They c
 | ----------------- | ------------------------------------------------------------ |
 | sample_number     | Number of the sample ions.                                   |
 | force_formula     | Choose the formula for friction force calculation. Now support four formulas for non-magnetized cooling force ("NONMAG_DERBENEV", "NONMAG_MESHKOV", "NONMAG_NUM1D", and "NONMAG_NUM3D")  and the Parkhomchuk formula for magnetized cooling force. |
-<<<<<<< HEAD
-
 | tmp_eff             | Set the effective temperature for parkhomchuk formula. The value should NOT be negative. Setting this parameter makes the "v_eff" be zero. |
->>>>>>> 58fc8451579743c862b785a6eb890043cf28bdd2
 | v_eff             | Set the effective velocity for parkhomchuk formula. Setting this parameter make the "t_eff" be zero. |
 | smooth_rho_max    | Use the formula that has a smooth dependence on ion velocity to calculate the maximum impact parameter for non-magnetized friction force. |
 | use_mean_rho_mean | Use the mean minimal impact parameter to calculate the Coulomb logrithm in the 3D numerical formula for non-magnetized friction force. |
@@ -418,6 +416,7 @@ The following keywords records the results from the previous computation. They c
 | total_expansion_rate | Calculate the total expansion rate (summation of the ibs rate and electron cooling rate) and output to the screen. Must create the ion beam, the ring, the electron beam, and the cooler before calling this command. |
 | run_simulation       | Simulate the evolution of the ion beam under IBS and/or electron cooling effect(s). |
 | srand                | Seed the random number. It is used as "srand expression".  The expression will be processed by the math parser and the simplest choice is an integer. Seed  the random number with the same value will generate the same sequence of random numbers. This may be useful in debugging, testing, or verifying some results. |
+| set_n_thread         | Set the  thread number of OPENMP. It is used as "set_n_thread desired_thread_number". With serial version JSEPC, this command will envoke a warning message, but will not prevent JSPEC from running. With parallel versoin JSPEC, if the thread number is not set using this command, OPENMP will use all the available threads. |
 
 
 
