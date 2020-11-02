@@ -341,8 +341,7 @@ The following keywords records the results from the previous computation. They c
 | sample_number     | Number of the sample ions.                                   |
 | force_formula     | Choose the formula for friction force calculation. Now support four formulas for non-magnetized cooling force ("NONMAG_DERBENEV", "NONMAG_MESHKOV", "NONMAG_NUM1D", and "NONMAG_NUM3D")  and the Parkhomchuk formula for magnetized cooling force. |
 <<<<<<< HEAD
-| t_eff             | Set the effective temperature for parkhomchuk formula. The value should NOT be negative. Setting this parameter makes the "v_eff" be zero. |
-=======
+
 | tmp_eff             | Set the effective temperature for parkhomchuk formula. The value should NOT be negative. Setting this parameter makes the "v_eff" be zero. |
 >>>>>>> 58fc8451579743c862b785a6eb890043cf28bdd2
 | v_eff             | Set the effective velocity for parkhomchuk formula. Setting this parameter make the "t_eff" be zero. |
