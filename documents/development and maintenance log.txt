@@ -1,0 +1,41 @@
+09/08/2020
+1.Merge electron beam edge effect into master. 
+
+09/06/2020
+1. A line that is consist of nine or more consecutive "=" is considered the end of the script. 
+2. New command: append, appendstr, savestr
+3. Use local time for record and file name.
+
+09/04/2020
+1. Add the fixed-bunch-length feature to the particle model. 
+
+05/21/2020
+1. Define the angles of the Gaussian electron bunch.
+
+05/13/2020
+1. Change the default output file name to "output_" followed by the input script file.
+2. Add "cv_l" (longitudinal center velocity) to the electron beam, which allows to add an additional 
+longitudinal velocity shift to the electron beam conveniently. 
+3. Print the input script file name to screen.
+
+05/06/2020
+1. Allow to print multiple variables at once, such as PRINT X, Y, Z.
+2. Fixed the bug that math functions cannot be recognized. This is because the math functions are
+defined in lower case in the muMathparser, which is actually case sensitive, but JSPEC2 converts 
+the input file into upper case for convenience. Now most math functions are redefined in upper case.
+
+05/03/2020
+1. Add four formulas for non-magnetized friction force calculation: nonmag-Derbenev, nonmag-Meshkov, 
+nonmag-num1D, nonmag-num3D.
+2. Add section_comment. Everything in this section will be treated as comments.
+3. Now one can save the output to a file besides the screen. 
+4. Now one can use "=== END ===" to end the script file. Anything below this command will be ignored.
+This command is not required to run the script file. It provides the convenience to users who want to
+record some results at the end of the script file and the script file is still runnable. 
+
+
+03/25/2020
+
+1. Use multiple electron bunches (same bunch but at different positions) simultaneously to cool an ion bunch
+2. Now allow to break a long line into multiple lines. 
+3. Replace trim_blank, trim_tab with trim_whitespace.  
